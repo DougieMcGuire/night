@@ -1,0 +1,761 @@
+javascript:(function() {
+    let isLooping = false;
+    let clickSpeed = 500; // Default speed (ms)
+    let extraLoopDelay = 0; // Extra delay before repeating
+
+    // Set tab title and icon
+    document.title = "Night";
+    let favicon = document.createElement('link');
+    favicon.type = 'image/x-icon';
+    favicon.rel = 'shortcut icon';
+    favicon.href = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI0ZGRjlDNCIgZD0iTTEyLjkgMy4xYy0yLjQtLjItNC44LjUtNi43IDIuMi0zLjYgMy4xLTQuMSA4LjYtMS4xIDEyLjItMi40LTMuOC0xLjItOC44IDIuNi0xMS4yLjgtLjUgMS42LS45IDIuNS0xLjFDMTEuMSA3LjggMTIgMTAuNyAxNCAxM2MuNS42IDEuMSAxLjEgMS44IDEuNCA0LjMtLjItNy42LTExLjMtMi45LTExLjN6Ii8+PC9zdmc+';
+    document.head.appendChild(favicon);
+
+    // Performance optimizations
+    function optimizePerformance() {
+        // Reduce animations
+        const style = document.createElement('style');
+        style.textContent = `
+            * {
+                animation-duration: 0.001s !important;
+                animation-delay: 0.001s !important;
+                transition-duration: 0.001s !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Disable unused features
+        if (window.requestIdleCallback) {
+            window.requestIdleCallback(() => {
+                // Remove unused event listeners
+                const elements = document.querySelectorAll('*');
+                for (let i = 0; i < elements.length; i++) {
+                    const element = elements[i];
+                    if (element.id !== 'loopButton' && 
+                        element.id !== 'speedValue' && 
+                        element.id !== 'extraDelayCheckbox' && 
+                        element.id !== 'extraDelayInput' &&
+                        !element.classList.contains('night-ui')) {
+                        element.onmouseover = null;
+                        element.onmouseout = null;
+                    }
+                }
+            });
+        }
+    }
+
+    // Modern intro screen
+    function createIntroScreen() {
+        // Create overlay
+        let overlay = document.createElement("div");
+        overlay.className = "night-ui";
+        overlay.style.position = "fixed";
+        overlay.style.top = "0";
+        overlay.style.left = "0";
+        overlay.style.width = "100vw";
+        overlay.style.height = "100vh";
+        overlay.style.backgroundColor = "#0f1624";
+        overlay.style.zIndex = "999999";
+        overlay.style.display = "flex";
+        overlay.style.flexDirection = "column";
+        overlay.style.justifyContent = "center";
+        overlay.style.alignItems = "center";
+        overlay.style.fontFamily = "'Montserrat', sans-serif";
+        document.body.appendChild(overlay);
+
+        // Add moon icon
+        let moonIcon = document.createElement("div");
+        moonIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="120" height="120"><path fill="#FFF9C4" d="M12.9 3.1c-2.4-.2-4.8.5-6.7 2.2-3.6 3.1-4.1 8.6-1.1 12.2-2.4-3.8-1.2-8.8 2.6-11.2.8-.5 1.6-.9 2.5-1.1C11.1 7.8 12 10.7 14 13c.5.6 1.1 1.1 1.8 1.4 4.3-.2-7.6-11.3-2.9-11.3z"/></svg>`;
+        moonIcon.style.marginBottom = "30px";
+        moonIcon.style.animation = "pulse 2s infinite";
+        let moonStyle = document.createElement("style");
+        moonStyle.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(moonStyle);
+        overlay.appendChild(moonIcon);
+
+        // Add title
+        let title = document.createElement("h1");
+        title.innerText = "NIGHT MODE";
+        title.style.color = "#fff";
+        title.style.fontSize = "36px";
+        title.style.fontWeight = "700";
+        title.style.marginBottom = "15px";
+        title.style.letterSpacing = "3px";
+        title.style.textShadow = "0 0 10px rgba(255, 249, 196, 0.7)";
+        title.style.animation = "fadeIn 0.8s ease-out forwards";
+        overlay.appendChild(title);
+
+        // Add subtitle
+        let subtitle = document.createElement("p");
+        subtitle.innerText = "Enhanced Auto-Clicker for Night Photography";
+        subtitle.style.color = "#aaa";
+        subtitle.style.fontSize = "18px";
+        subtitle.style.marginBottom = "40px";
+        subtitle.style.animation = "fadeIn 0.8s ease-out 0.2s forwards";
+        subtitle.style.opacity = "0";
+        overlay.appendChild(subtitle);
+
+        // Add start button
+        let startBtn = document.createElement("button");
+        startBtn.innerText = "ENTER NIGHT MODE";
+        startBtn.style.padding = "15px 40px";
+        startBtn.style.fontSize = "18px";
+        startBtn.style.backgroundColor = "transparent";
+        startBtn.style.color = "#FFF9C4";
+        startBtn.style.border = "2px solid #FFF9C4";
+        startBtn.style.borderRadius = "30px";
+        startBtn.style.cursor = "pointer";
+        startBtn.style.marginBottom = "20px";
+        startBtn.style.transition = "all 0.3s";
+        startBtn.style.letterSpacing = "2px";
+        startBtn.style.fontWeight = "600";
+        startBtn.style.boxShadow = "0 0 20px rgba(255, 249, 196, 0.3)";
+        startBtn.style.animation = "fadeIn 0.8s ease-out 0.4s forwards";
+        startBtn.style.opacity = "0";
+        startBtn.onmouseover = function() {
+            this.style.backgroundColor = "#FFF9C4";
+            this.style.color = "#0f1624";
+            this.style.boxShadow = "0 0 30px rgba(255, 249, 196, 0.5)";
+        };
+        startBtn.onmouseout = function() {
+            this.style.backgroundColor = "transparent";
+            this.style.color = "#FFF9C4";
+            this.style.boxShadow = "0 0 20px rgba(255, 249, 196, 0.3)";
+        };
+        startBtn.onclick = function() {
+            overlay.style.opacity = "0";
+            overlay.style.transition = "opacity 0.5s ease-out";
+            setTimeout(() => {
+                overlay.remove();
+                initializeApp();
+            }, 500);
+        };
+        overlay.appendChild(startBtn);
+
+        // Add credits button
+        let creditsBtn = document.createElement("button");
+        creditsBtn.innerText = "CREDITS";
+        creditsBtn.style.padding = "10px 30px";
+        creditsBtn.style.fontSize = "14px";
+        creditsBtn.style.backgroundColor = "transparent";
+        creditsBtn.style.color = "#aaa";
+        creditsBtn.style.border = "1px solid #444";
+        creditsBtn.style.borderRadius = "25px";
+        creditsBtn.style.cursor = "pointer";
+        creditsBtn.style.transition = "all 0.3s";
+        creditsBtn.style.animation = "fadeIn 0.8s ease-out 0.6s forwards";
+        creditsBtn.style.opacity = "0";
+        creditsBtn.onmouseover = function() {
+            this.style.backgroundColor = "#222";
+            this.style.color = "#fff";
+            this.style.borderColor = "#666";
+        };
+        creditsBtn.onmouseout = function() {
+            this.style.backgroundColor = "transparent";
+            this.style.color = "#aaa";
+            this.style.borderColor = "#444";
+        };
+        creditsBtn.onclick = function() {
+            window.open("https://dougie.wtf/cred", "_blank");
+        };
+        overlay.appendChild(creditsBtn);
+    }
+
+    function deleteElement(xpath, delay) {
+        setTimeout(() => {
+            let elem = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (elem) elem.remove();
+        }, delay);
+    }
+
+    function expandToFullscreen(xpath, delay) {
+        setTimeout(() => {
+            let elem = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (elem) {
+                elem.style.position = "fixed";
+                elem.style.top = "0";
+                elem.style.left = "0";
+                elem.style.width = "100vw";
+                elem.style.height = "100vh";
+                elem.style.zIndex = "9999";
+                
+                // Create better background
+                const customBg = document.createElement('div');
+                customBg.style.position = "fixed";
+                customBg.style.top = "0";
+                customBg.style.left = "0";
+                customBg.style.width = "100vw";
+                customBg.style.height = "100vh";
+                customBg.style.zIndex = "9998";
+                customBg.style.background = "linear-gradient(135deg, #0f1624 0%, #1a223f 100%)";
+                customBg.style.backgroundSize = "cover";
+                
+                // Add star effect
+                customBg.innerHTML = `
+                    <style>
+                        .star {
+                            position: absolute;
+                            background-color: #fff;
+                            border-radius: 50%;
+                            animation: twinkle 2s infinite;
+                        }
+                        @keyframes twinkle {
+                            0% { opacity: 0.3; }
+                            50% { opacity: 1; }
+                            100% { opacity: 0.3; }
+                        }
+                    </style>
+                `;
+                
+                // Create stars
+                for (let i = 0; i < 100; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    const size = Math.random() * 2 + 1;
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.style.top = `${Math.random() * 100}%`;
+                    star.style.animationDelay = `${Math.random() * 2}s`;
+                    customBg.appendChild(star);
+                }
+                
+                document.body.appendChild(customBg);
+                elem.style.background = "transparent";
+            }
+        }, delay);
+    }
+
+    function clickElement(xpath) {
+        let elem = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        if (elem) elem.click();
+    }
+
+    function clickElementTwice(xpath) {
+        let elem = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        if (elem) {
+            elem.click();
+            setTimeout(() => elem.click(), 100); // 0.1 second delay between clicks
+        }
+    }
+
+    function loopActions() {
+        if (!isLooping) return;
+        
+        // Update tab title when looping
+        document.title = "Night - ON";
+        
+        clickElement("/html/body/main/div[1]/div[2]/div/div/div/div/div[1]/div/div/div/div/div/div[2]/div/div/div[1]/button[1]");
+        setTimeout(() => {
+            clickElement("/html/body/main/div[1]/div[2]/div/div/div/div/div[1]/div/div/div/div/div[2]/div[2]/button[2]");
+            setTimeout(() => {
+                clickElementTwice("/html/body/main/div[1]/div[2]/div/div/div/div/div[1]/div/div/div/div/div[1]/div/form/div/div[2]/button");
+                setTimeout(() => {
+                    clickElement("/html/body/main/div[1]/div[2]/div/div/div/div/div[1]/div/div/div/div/div[1]/div/form/div[2]/button");
+                    setTimeout(loopActions, extraLoopDelay); // Add extra delay if toggled on
+                }, clickSpeed);
+            }, clickSpeed);
+        }, clickSpeed);
+    }
+
+    function toggleLoop() {
+        isLooping = !isLooping;
+        const loopButton = document.getElementById("loopButton");
+        const statusIndicator = document.getElementById("statusIndicator");
+        
+        if (isLooping) {
+            document.title = "Night - ON";
+            loopActions();
+            loopButton.innerHTML = '<span class="btn-icon">⏹</span> STOP LOOP';
+            loopButton.style.backgroundColor = "#FFF9C4";
+            loopButton.style.color = "#0f1624";
+            loopButton.style.boxShadow = "0 0 20px rgba(255, 249, 196, 0.5)";
+            statusIndicator.style.backgroundColor = "#4CAF50";
+        } else {
+            document.title = "Night";
+            loopButton.innerHTML = '<span class="btn-icon">▶</span> START LOOP';
+            loopButton.style.backgroundColor = "transparent";
+            loopButton.style.color = "#FFF9C4";
+            loopButton.style.boxShadow = "0 0 10px rgba(255, 249, 196, 0.3)";
+            statusIndicator.style.backgroundColor = "#FF5252";
+        }
+    }
+
+    function updateSpeed(event) {
+        clickSpeed = parseInt(event.target.value);
+        document.getElementById("speedValue").innerText = clickSpeed + "ms";
+        
+        // Update visual indicator
+        const percentage = ((clickSpeed - 100) / 1900) * 100;
+        document.getElementById("speedIndicator").style.width = (100 - percentage) + "%";
+    }
+
+    function updateExtraDelay(event) {
+        const checkbox = document.getElementById("extraDelayCheckbox");
+        const value = parseInt(document.getElementById("extraDelayInput").value);
+        extraLoopDelay = checkbox.checked ? value * 1000 : 0;
+        
+        document.getElementById("extraDelayContainer").style.opacity = checkbox.checked ? "1" : "0.5";
+    }
+
+    function createUI() {
+        // Create a container for UI elements with a modern design
+        let uiPanel = document.createElement("div");
+        uiPanel.className = "night-ui";
+        uiPanel.style.position = "fixed";
+        uiPanel.style.right = "20px";
+        uiPanel.style.top = "20px";
+        uiPanel.style.padding = "20px";
+        uiPanel.style.background = "rgba(15, 22, 36, 0.85)";
+        uiPanel.style.backdropFilter = "blur(10px)";
+        uiPanel.style.borderRadius = "15px";
+        uiPanel.style.border = "1px solid rgba(255, 249, 196, 0.3)";
+        uiPanel.style.boxShadow = "0 10px 30px rgba(0, 0, 0, 0.5)";
+        uiPanel.style.zIndex = "100000";
+        uiPanel.style.width = "280px";
+        uiPanel.style.fontFamily = "'Montserrat', sans-serif";
+        uiPanel.style.transition = "transform 0.3s ease-out";
+        document.body.appendChild(uiPanel);
+        
+        // Add CSS for UI elements
+        const uiStyle = document.createElement('style');
+        uiStyle.textContent = `
+            .night-ui .slider {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 100%;
+                height: 6px;
+                background: #253152;
+                border-radius: 3px;
+                outline: none;
+            }
+            
+            .night-ui .slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background: #FFF9C4;
+                cursor: pointer;
+                box-shadow: 0 0 10px rgba(255, 249, 196, 0.5);
+            }
+            
+            .night-ui .slider::-moz-range-thumb {
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background: #FFF9C4;
+                cursor: pointer;
+                box-shadow: 0 0 10px rgba(255, 249, 196, 0.5);
+            }
+            
+            .night-ui .btn-icon {
+                display: inline-block;
+                margin-right: 8px;
+            }
+            
+            .night-ui input[type="checkbox"] {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #FFF9C4;
+                background: transparent;
+                cursor: pointer;
+                position: relative;
+                outline: none;
+            }
+            
+            .night-ui input[type="checkbox"]:checked::after {
+                content: "✓";
+                position: absolute;
+                color: #0f1624;
+                background: #FFF9C4;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                border-radius: 2px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            
+            .night-ui input[type="number"] {
+                background: #253152;
+                border: none;
+                border-radius: 5px;
+                color: #fff;
+                padding: 8px;
+                font-family: 'Montserrat', sans-serif;
+                width: 60px;
+                text-align: center;
+            }
+            
+            .night-ui input[type="number"]:focus {
+                outline: 1px solid #FFF9C4;
+            }
+            
+            .night-ui .speed-bar {
+                height: 6px;
+                background: #253152;
+                border-radius: 3px;
+                position: relative;
+                margin-top: 5px;
+                margin-bottom: 15px;
+            }
+            
+            .night-ui .speed-indicator {
+                position: absolute;
+                left: 0;
+                top: 0;
+                height: 100%;
+                background: linear-gradient(90deg, #FFF9C4, #ffc107);
+                border-radius: 3px;
+                transition: width 0.3s;
+            }
+            
+            .night-ui .status-indicator {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background-color: #FF5252;
+                margin-right: 10px;
+                display: inline-block;
+            }
+            
+            .night-ui .header-bar {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+            
+            .night-ui .drag-handle {
+                margin-left: auto;
+                cursor: move;
+                opacity: 0.5;
+                transition: opacity 0.3s;
+            }
+            
+            .night-ui .drag-handle:hover {
+                opacity: 1;
+            }
+        `;
+        document.head.appendChild(uiStyle);
+
+        // Header with logo and title
+        let header = document.createElement("div");
+        header.className = "header-bar";
+        uiPanel.appendChild(header);
+        
+        // Logo
+        let logo = document.createElement("div");
+        logo.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="#FFF9C4" d="M12.9 3.1c-2.4-.2-4.8.5-6.7 2.2-3.6 3.1-4.1 8.6-1.1 12.2-2.4-3.8-1.2-8.8 2.6-11.2.8-.5 1.6-.9 2.5-1.1C11.1 7.8 12 10.7 14 13c.5.6 1.1 1.1 1.8 1.4 4.3-.2-7.6-11.3-2.9-11.3z"/></svg>`;
+        header.appendChild(logo);
+        
+        // Title
+        let title = document.createElement("div");
+        title.innerText = "NIGHT CONTROL";
+        title.style.color = "#fff";
+        title.style.fontSize = "16px";
+        title.style.fontWeight = "700";
+        title.style.marginLeft = "10px";
+        title.style.letterSpacing = "1px";
+        header.appendChild(title);
+        
+        // Drag handle
+        let dragHandle = document.createElement("div");
+        dragHandle.className = "drag-handle";
+        dragHandle.innerHTML = "⋮";
+        dragHandle.style.color = "#aaa";
+        dragHandle.style.fontSize = "20px";
+        header.appendChild(dragHandle);
+        
+        // Make the panel draggable
+        let isDragging = false;
+        let offsetX, offsetY;
+        
+        dragHandle.onmousedown = function(e) {
+            isDragging = true;
+            offsetX = e.clientX - uiPanel.getBoundingClientRect().left;
+            offsetY = e.clientY - uiPanel.getBoundingClientRect().top;
+            uiPanel.style.transition = "none";
+        };
+        
+        document.onmousemove = function(e) {
+            if (isDragging) {
+                uiPanel.style.left = (e.clientX - offsetX) + "px";
+                uiPanel.style.top = (e.clientY - offsetY) + "px";
+                uiPanel.style.right = "auto";
+            }
+        };
+        
+        document.onmouseup = function() {
+            isDragging = false;
+            uiPanel.style.transition = "transform 0.3s ease-out";
+        };
+
+        // Toggle Loop Button with status indicator
+        let loopButtonContainer = document.createElement("div");
+        loopButtonContainer.style.display = "flex";
+        loopButtonContainer.style.alignItems = "center";
+        loopButtonContainer.style.marginBottom = "20px";
+        uiPanel.appendChild(loopButtonContainer);
+        
+        let statusIndicator = document.createElement("div");
+        statusIndicator.id = "statusIndicator";
+        statusIndicator.className = "status-indicator";
+        loopButtonContainer.appendChild(statusIndicator);
+        
+        let loopButton = document.createElement("button");
+        loopButton.id = "loopButton";
+        loopButton.innerHTML = '<span class="btn-icon">▶</span> START LOOP';
+        loopButton.style.flex = "1";
+        loopButton.style.padding = "10px";
+        loopButton.style.background = "transparent";
+        loopButton.style.color = "#FFF9C4";
+        loopButton.style.border = "2px solid #FFF9C4";
+        loopButton.style.borderRadius = "8px";
+        loopButton.style.cursor = "pointer";
+        loopButton.style.fontWeight = "600";
+        loopButton.style.fontSize = "14px";
+        loopButton.style.letterSpacing = "1px";
+        loopButton.style.transition = "all 0.3s";
+        loopButton.style.boxShadow = "0 0 10px rgba(255, 249, 196, 0.3)";
+        loopButton.onclick = toggleLoop;
+        loopButton.onmouseover = function() {
+            if (!isLooping) {
+                this.style.backgroundColor = "rgba(255, 249, 196, 0.2)";
+            }
+        };
+        loopButton.onmouseout = function() {
+            if (!isLooping) {
+                this.style.backgroundColor = "transparent";
+            }
+        };
+        loopButtonContainer.appendChild(loopButton);
+
+        // Speed Control Section
+        let speedSection = document.createElement("div");
+        speedSection.style.marginBottom = "20px";
+        uiPanel.appendChild(speedSection);
+
+        // Speed Control Label
+        let speedLabelContainer = document.createElement("div");
+        speedLabelContainer.style.display = "flex";
+        speedLabelContainer.style.justifyContent = "space-between";
+        speedLabelContainer.style.marginBottom = "8px";
+        speedSection.appendChild(speedLabelContainer);
+
+        let speedLabel = document.createElement("span");
+        speedLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFF9C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Click Speed';
+        speedLabel.style.color = "#aaa";
+        speedLabel.style.fontSize = "14px";
+        speedLabel.style.display = "flex";
+        speedLabel.style.alignItems = "center";
+        speedLabel.style.gap = "5px";
+        speedLabelContainer.appendChild(speedLabel);
+
+        let speedValue = document.createElement("span");
+        speedValue.id = "speedValue";
+        speedValue.innerText = clickSpeed + "ms";
+        speedValue.style.color = "#FFF9C4";
+        speedValue.style.fontSize = "14px";
+        speedValue.style.fontWeight = "600";
+        speedLabelContainer.appendChild(speedValue);
+
+        // Speed visual bar
+        let speedBar = document.createElement("div");
+        speedBar.className = "speed-bar";
+        speedSection.appendChild(speedBar);
+        
+        let speedIndicator = document.createElement("div");
+        speedIndicator.id = "speedIndicator";
+        speedIndicator.className = "speed-indicator";
+        speedIndicator.style.width = "80%"; // Initial value
+        speedBar.appendChild(speedIndicator);
+
+        // Speed Control
+        let speedControl = document.createElement("input");
+        speedControl.type = "range";
+        speedControl.className = "slider";
+        speedControl.min = "100";
+        speedControl.max = "2000";
+        speedControl.value = clickSpeed;
+        speedControl.oninput = updateSpeed;
+        speedSection.appendChild(speedControl);
+        
+        // Speed legend
+        let speedLegend = document.createElement("div");
+        speedLegend.style.display = "flex";
+        speedLegend.style.justifyContent = "space-between";
+        speedLegend.style.marginTop = "5px";
+        speedSection.appendChild(speedLegend);
+        
+        let fastLabel = document.createElement("span");
+        fastLabel.innerText = "Fast";
+        fastLabel.style.color = "#aaa";
+        fastLabel.style.fontSize = "12px";
+        speedLegend.appendChild(fastLabel);
+        
+        let slowLabel = document.createElement("span");
+        slowLabel.innerText = "Slow";
+        slowLabel.style.color = "#aaa";
+        slowLabel.style.fontSize = "12px";
+        speedLegend.appendChild(slowLabel);
+
+        // Extra Delay Controls
+        let delaySection = document.createElement("div");
+        delaySection.style.marginBottom = "15px";
+        uiPanel.appendChild(delaySection);
+
+        let delayContainer = document.createElement("div");
+        delayContainer.style.display = "flex";
+        delayContainer.style.alignItems = "center";
+        delayContainer.style.marginBottom = "10px";
+        delaySection.appendChild(delayContainer);
+
+        let extraDelayCheckbox = document.createElement("input");
+        extraDelayCheckbox.type = "checkbox";
+        extraDelayCheckbox.id = "extraDelayCheckbox";
+        extraDelayCheckbox.style.marginRight = "10px";
+        extraDelayCheckbox.onchange = () => updateExtraDelay({ target: document.getElementById("extraDelayInput") });
+        delayContainer.appendChild(extraDelayCheckbox);
+
+        let extraDelayLabel = document.createElement("span");
+        extraDelayLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFF9C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M21 9H3"></path><path d="M8 3v18"></path></svg> Add pause between loops';
+        extraDelayLabel.style.color = "#aaa";
+        extraDelayLabel.style.fontSize = "14px";
+        extraDelayLabel.style.display = "flex";
+        extraDelayLabel.style.alignItems = "center";
+        extraDelayLabel.style.gap = "5px";
+        delayContainer.appendChild(extraDelayLabel);
+
+        let extraDelayContainer = document.createElement("div");
+        extraDelayContainer.id = "extraDelayContainer";
+        extraDelayContainer.style.display = "flex";
+        extraDelayContainer.style.alignItems = "center";
+        extraDelayContainer.style.opacity = "0.5";
+        extraDelayContainer.style.transition = "opacity 0.3s";
+        delaySection.appendChild(extraDelayContainer);
+
+       let extraDelayInput = document.createElement("input");
+        extraDelayInput.type = "number";
+        extraDelayInput.id = "extraDelayInput";
+        extraDelayInput.value = "0";
+        extraDelayInput.min = "0";
+        extraDelayInput.max = "60";
+        extraDelayInput.oninput = updateExtraDelay;
+        extraDelayContainer.appendChild(extraDelayInput);
+
+        let secondsLabel = document.createElement("span");
+        secondsLabel.innerText = "seconds";
+        secondsLabel.style.color = "#aaa";
+        secondsLabel.style.fontSize = "14px";
+        secondsLabel.style.marginLeft = "10px";
+        extraDelayContainer.appendChild(secondsLabel);
+
+        // Stats section
+        let statsSection = document.createElement("div");
+        statsSection.style.backgroundColor = "rgba(37, 49, 82, 0.6)";
+        statsSection.style.borderRadius = "8px";
+        statsSection.style.padding = "10px 15px";
+        statsSection.style.marginBottom = "15px";
+        uiPanel.appendChild(statsSection);
+        
+        // Stats title
+        let statsTitle = document.createElement("div");
+        statsTitle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFF9C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M18 9l-6-6-6 6"></path><path d="M6 12h12"></path><path d="M9 3h6"></path><path d="M6 6h12"></path></svg> Performance Tips';
+        statsTitle.style.color = "#FFF9C4";
+        statsTitle.style.fontSize = "14px";
+        statsTitle.style.fontWeight = "600";
+        statsTitle.style.marginBottom = "8px";
+        statsTitle.style.display = "flex";
+        statsTitle.style.alignItems = "center";
+        statsTitle.style.gap = "5px";
+        statsSection.appendChild(statsTitle);
+        
+        // Stats content
+        let statsContent = document.createElement("div");
+        statsContent.innerHTML = "• Adjust speed based on your connection<br>• Close other tabs for better performance<br>• Enable pause for more stability";
+        statsContent.style.color = "#aaa";
+        statsContent.style.fontSize = "12px";
+        statsContent.style.lineHeight = "1.5";
+        statsSection.appendChild(statsContent);
+
+        // Footer with version info
+        let footer = document.createElement("div");
+        footer.style.borderTop = "1px solid rgba(255, 255, 255, 0.1)";
+        footer.style.paddingTop = "10px";
+        footer.style.display = "flex";
+        footer.style.justifyContent = "space-between";
+        footer.style.alignItems = "center";
+        uiPanel.appendChild(footer);
+        
+        let versionInfo = document.createElement("div");
+        versionInfo.innerText = "v2.0";
+        versionInfo.style.color = "#666";
+        versionInfo.style.fontSize = "12px";
+        footer.appendChild(versionInfo);
+        
+        let minimizeBtn = document.createElement("button");
+        minimizeBtn.innerHTML = "▼";
+        minimizeBtn.style.background = "transparent";
+        minimizeBtn.style.border = "none";
+        minimizeBtn.style.color = "#aaa";
+        minimizeBtn.style.cursor = "pointer";
+        minimizeBtn.style.fontSize = "12px";
+        minimizeBtn.style.padding = "0";
+        
+        let isMinimized = false;
+        minimizeBtn.onclick = function() {
+            if (isMinimized) {
+                uiPanel.style.transform = "translateY(0)";
+                minimizeBtn.innerHTML = "▼";
+                isMinimized = false;
+            } else {
+                // Calculate how much to translate (everything except header)
+                const headerHeight = header.offsetHeight;
+                const panelHeight = uiPanel.offsetHeight;
+                uiPanel.style.transform = `translateY(${-(panelHeight - headerHeight - 10)}px)`;
+                minimizeBtn.innerHTML = "▲";
+                isMinimized = true;
+            }
+        };
+        footer.appendChild(minimizeBtn);
+    }
+
+    function initializeApp() {
+        // Set up performance optimizations
+        optimizePerformance();
+        
+        // Execute setup actions
+        deleteElement("/html/body/main/div[1]/div[2]", 0);
+        deleteElement("/html/body/main/div[1]/div[2]/div/div/div/div[1]", 400);
+        // Delete the image specified
+        deleteElement("/html/body/main/div[1]/div[2]/div/div/div/img", 300);
+        
+        // Set enhanced background with stars
+        expandToFullscreen("/html/body/main/div[1]/div[2]", 600);
+
+        // Create UI with a slight delay to ensure background is set
+        setTimeout(createUI, 800);
+    }
+
+    // Start with intro screen
+    createIntroScreen();
+})();
